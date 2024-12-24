@@ -44,6 +44,16 @@
             font-size: 24px;
             font-weight: 600;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .todo-count {
+            font-size: 16px;
+            color: var(--text-color);
+            opacity: 0.7;
+            font-weight: normal;
         }
 
         .header-buttons {
@@ -257,7 +267,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="app-title">Too-doo</h1>
+            <h1 class="app-title">
+                Too-doo
+                <span class="todo-count" id="todo-count"></span>
+            </h1>
             <div class="header-buttons">
                 <button class="add-button" onclick="createNewTodo()" title="Add new todo">+</button>
                 <button class="info-button" onclick="toggleShortcutsDialog()">Keyboard Shortcuts</button>

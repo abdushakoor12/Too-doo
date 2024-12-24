@@ -228,6 +228,18 @@ function renderTodoItem(todo, index) {
 }
 
 /**
+ * Updates the todo count in the header
+ */
+function updateTodoCount() {
+    const totalTodos = todos.length;
+    const completedTodos = todos.filter(todo => todo.completed).length;
+    const counter = document.getElementById('todo-count');
+    if (counter) {
+        counter.textContent = `${completedTodos}/${totalTodos}`;
+    }
+}
+
+/**
  * Renders all todos or empty state
  */
 function renderTodos() {
@@ -243,6 +255,7 @@ function renderTodos() {
     } else {
         container.innerHTML = todos.map((todo, index) => renderTodoItem(todo, index)).join('');
     }
+    updateTodoCount();
 }
 
 /**
