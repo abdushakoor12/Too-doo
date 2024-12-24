@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Too-doo</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap">
+    <style>
+        :root {
+            --bg-color: #1a1b26;
+            --surface-color: #24283b;
+            --text-color: #a9b1d6;
+            --accent-color: #7aa2f7;
+            --selected-bg: #2f3549;
+            --hover-bg: #292e43;
+            --editing-bg: #2a3b36;
+            --dialog-bg: rgba(26, 27, 38, 0.95);
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .info-button, .add-button {
+            background: none;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-button:hover, .add-button:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .add-button {
+            font-size: 20px;
+            padding: 4px 12px;
+            line-height: 1;
+        }
+
+        .shortcuts-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--dialog-bg);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .shortcuts-dialog.open {
+            display: block;
+        }
+
+        .dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .dialog-title {
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .close-button:hover {
+            opacity: 1;
+        }
+
+        .shortcut-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shortcut-keys {
+            display: flex;
+            gap: 8px;
+        }
+
+        .key {
+            background: var(--surface-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-color);
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+        .keyboard-shortcut {
+            background: var(--surface-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        #todos-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+        }
+
+        .todo-item {
+            background: var(--surface-color);
+            padding: 12px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .todo-item::before {
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-color);
+            opacity: 0.5;
+        }
+
+        /* Add hyphen for indented items */
+        .todo-item[data-indent="1"]::before,
+        .todo-item[data-indent="2"]::before,
+        .todo-item[data-indent="3"]::before,
+        .todo-item[data-indent="4"]::before,
+        .todo-item[data-indent="5"]::before {
+            content: '-';
+        }
+
+        /* Indentation levels - each level is 20px */
+        .todo-item[data-indent="1"] { margin-left: 20px; }
+        .todo-item[data-indent="2"] { margin-left: 40px; }
+        .todo-item[data-indent="3"] { margin-left: 60px; }
+        .todo-item[data-indent="4"] { margin-left: 80px; }
+        .todo-item[data-indent="5"] { margin-left: 100px; }
+
+        .todo-item:hover:not(.selected) {
+            background: var(--hover-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .todo-item.selected {
+            background: var(--selected-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .todo-item.editing {
+            background: var(--editing-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        [contenteditable] {
+            outline: none;
+            caret-color: var(--accent-color);
+        }
+
+        [contenteditable]:focus {
+            outline: none;
+        }
+
+        .todo-content {
+            min-height: 24px;
+        }
+
+        /* Custom selection color */
+        ::selection {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="add-button" onclick="createNewTodo()" title="Add new todo">+</button>
+            <button class="info-button" onclick="toggleShortcutsDialog()">Keyboard Shortcuts</button>
+        </div>
+        <div id="todos-container"></div>
+    </div>
+
+    <div class="shortcuts-dialog" id="shortcuts-dialog">
+        <div class="dialog-header">
+            <h2 class="dialog-title">Keyboard Shortcuts</h2>
+            <button class="close-button" onclick="toggleShortcutsDialog()">×</button>
+        </div>
+        <div class="shortcut-list">
+            <div class="shortcut-item">
+                <span>Create new todo</span>
+                <div class="shortcut-keys">
+                    <span class="key">N</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Navigate todos</span>
+                <div class="shortcut-keys">
+                    <span class="key">↑</span>
+                    <span class="key">↓</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Edit selected todo</span>
+                <div class="shortcut-keys">
+                    <span class="key">Enter</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Save changes</span>
+                <div class="shortcut-keys">
+                    <span class="key">Enter</span>
+                    <span class="key">Esc</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Delete todo</span>
+                <div class="shortcut-keys">
+                    <span class="key">Delete</span>
+                    <span class="key">Backspace</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Increase indent</span>
+                <div class="shortcut-keys">
+                    <span class="key">Tab</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Decrease indent</span>
+                <div class="shortcut-keys">
+                    <span class="key">Shift</span>
+                    <span class="key">Tab</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
