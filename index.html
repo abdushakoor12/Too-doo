@@ -34,9 +34,21 @@
 
         .header {
             display: flex;
-            justify-content: flex-end;
-            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+        }
+
+        .app-title {
+            color: var(--accent-color);
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 12px;
         }
 
         .info-button, .add-button {
@@ -230,6 +242,11 @@
             min-height: 24px;
         }
 
+        .todo-content.completed {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
         /* Custom selection color */
         ::selection {
             background: var(--accent-color);
@@ -240,8 +257,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <button class="add-button" onclick="createNewTodo()" title="Add new todo">+</button>
-            <button class="info-button" onclick="toggleShortcutsDialog()">Keyboard Shortcuts</button>
+            <h1 class="app-title">Too-doo</h1>
+            <div class="header-buttons">
+                <button class="add-button" onclick="createNewTodo()" title="Add new todo">+</button>
+                <button class="info-button" onclick="toggleShortcutsDialog()">Keyboard Shortcuts</button>
+            </div>
         </div>
         <div id="todos-container"></div>
     </div>
@@ -256,6 +276,12 @@
                 <span>Create new todo</span>
                 <div class="shortcut-keys">
                     <span class="key">N</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span>Toggle completion</span>
+                <div class="shortcut-keys">
+                    <span class="key">Space</span>
                 </div>
             </div>
             <div class="shortcut-item">

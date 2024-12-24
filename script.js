@@ -1,10 +1,8 @@
 /**
  * @typedef {Object} Todo
- * @property {string} id - Unique identifier for the todo
- * @property {string} title - The title of the todo
- * @property {boolean} completed - Whether the todo is completed
- * @property {string} createdAt - ISO string of when the todo was created
- * @property {string} [completedAt] - ISO string of when the todo was completed
+ * @property {number} id
+ * @property {string} title
+ * @property {boolean} completed
  * @property {number} [indentLevel] - Indentation level (0-5)
  */
 
@@ -59,6 +57,7 @@ function createNewTodo() {
     const newTodo = {
         id: Date.now(),
         title: '',
+        completed: false,
         indentLevel: 0
     };
 
@@ -144,6 +143,17 @@ function changeIndentLevel(increase) {
 }
 
 /**
+ * Toggles the completion status of the selected todo
+ */
+function toggleTodo() {
+    if (selectedIndex >= 0) {
+        todos[selectedIndex].completed = !todos[selectedIndex].completed;
+        saveTodos();
+        renderTodos();
+    }
+}
+
+/**
  * Handles input events for editing todos
  * @param {InputEvent} e
  */
@@ -208,7 +218,7 @@ function renderTodoItem(todo, index) {
              data-index="${index}"
              data-indent="${todo.indentLevel || 0}"
              onclick="selectTodo(${index}, event)">
-            <div class="todo-content"
+            <div class="todo-content ${todo.completed ? 'completed' : ''}"
                  contenteditable="${editing}"
                  ${editing ? '' : 'tabindex="-1"'}>
                 ${todo.title || ''}
@@ -267,6 +277,13 @@ function handleKeyboard(e) {
     if (!isEditing && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         createNewTodo();
+        return;
+    }
+
+    // Toggle todo completion with space
+    if (!isEditing && e.key === ' ' && selectedIndex >= 0) {
+        e.preventDefault();
+        toggleTodo();
         return;
     }
 

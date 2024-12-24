@@ -7,6 +7,7 @@ A simple todo app that works with both keyboard and mouse. Built with vanilla Ja
 ## Features
 
 - Create and manage todos
+- Mark todos as complete with spacebar
 - Use keyboard shortcuts for quick actions
 - Organize todos with indentation
 - Dark theme for better readability
@@ -15,6 +16,7 @@ A simple todo app that works with both keyboard and mouse. Built with vanilla Ja
 ## Shortcuts
 
 - `N` - New todo
+- `Space` - Toggle todo completion
 - `↑/↓` - Move between todos
 - `Enter` - Start editing
 - `Enter/Esc` - Save changes
