@@ -8,103 +8,83 @@
  * @property {number} [indentLevel] - Indentation level (0-5)
  */
 
+/**
+ * Debounce function to limit the rate at which a function is called
+ * @param {Function} func 
+ * @param {number} wait 
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 /** @type {Todo[]} */
 let todos = [];
 let selectedIndex = -1;
 let isEditing = false;
 
-/**
- * @returns {Todo[]}
- */
-function getTodos() {
-    const storedTodos = localStorage.getItem('todos');
-    todos = storedTodos ? JSON.parse(storedTodos) : [];
-    return todos;
-}
+// Debounced save function
+const debouncedSave = debounce(() => {
+    if (selectedIndex >= 0) {
+        saveTodos();
+    }
+}, 300);
 
 /**
- * @param {Todo[]} todos
+ * Saves todos to localStorage
  */
-function saveTodos(todos) {
+function saveTodos() {
     localStorage.setItem('todos', JSON.stringify(todos));
 }
 
 /**
- * Creates a new todo and adds it to the list
+ * Gets todos from localStorage
+ */
+function getTodos() {
+    const saved = localStorage.getItem('todos');
+    todos = saved ? JSON.parse(saved) : [];
+}
+
+/**
+ * Creates a new todo
  */
 function createNewTodo() {
-    const todo = {
-        id: crypto.randomUUID(),
+    const newTodo = {
+        id: Date.now(),
         title: '',
-        completed: false,
-        createdAt: new Date().toISOString(),
         indentLevel: 0
     };
-    todos.push(todo);
-    selectedIndex = todos.length - 1;
+
+    // If there are existing todos, insert after current selection and inherit indent
+    if (todos.length > 0) {
+        const currentIndentLevel = todos[selectedIndex]?.indentLevel || 0;
+        newTodo.indentLevel = currentIndentLevel;
+        
+        // Insert after current selection
+        const insertIndex = selectedIndex >= 0 ? selectedIndex + 1 : todos.length;
+        todos.splice(insertIndex, 0, newTodo);
+        selectedIndex = insertIndex;
+    } else {
+        // First todo
+        todos.push(newTodo);
+        selectedIndex = 0;
+    }
+
     isEditing = true;
-    saveTodos(todos);
+    saveTodos();
     renderTodos();
     focusSelectedTodo();
 }
 
 /**
- * Changes the indent level of the current todo
- * @param {boolean} increase - Whether to increase or decrease the indent level
- */
-function changeIndentLevel(increase) {
-    if (selectedIndex >= 0) {
-        const todo = todos[selectedIndex];
-        const currentLevel = todo.indentLevel || 0;
-        
-        if (increase && currentLevel < 5) {
-            todo.indentLevel = currentLevel + 1;
-            saveTodos(todos);
-            renderTodos();
-        } else if (!increase && currentLevel > 0) {
-            todo.indentLevel = currentLevel - 1;
-            saveTodos(todos);
-            renderTodos();
-        }
-    }
-}
-
-/**
- * Focuses the selected todo
- */
-function focusSelectedTodo() {
-    if (selectedIndex >= 0) {
-        const content = document.querySelector(`#todo-${todos[selectedIndex].id} .todo-content`);
-        if (content) {
-            content.focus();
-            // Place cursor at the end of the content
-            const range = document.createRange();
-            const selection = window.getSelection();
-            range.selectNodeContents(content);
-            range.collapse(false);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-    }
-}
-
-/**
- * Exits edit mode and saves the current todo
- */
-function exitEditMode() {
-    if (selectedIndex >= 0) {
-        const content = document.querySelector(`#todo-${todos[selectedIndex].id} .todo-content`);
-        if (content) {
-            todos[selectedIndex].title = content.textContent.trim();
-            saveTodos(todos);
-        }
-    }
-    isEditing = false;
-    renderTodos();
-}
-
-/**
- * Removes the currently selected todo
+ * Removes the selected todo
  */
 function removeTodo() {
     if (selectedIndex >= 0) {
@@ -112,19 +92,103 @@ function removeTodo() {
         if (selectedIndex >= todos.length) {
             selectedIndex = todos.length - 1;
         }
-        saveTodos(todos);
+        saveTodos();
         renderTodos();
+    }
+}
+
+/**
+ * Exits edit mode and saves changes
+ */
+function exitEditMode() {
+    isEditing = false;
+    saveTodos();
+    renderTodos();
+}
+
+/**
+ * Focuses the selected todo for editing
+ */
+function focusSelectedTodo() {
+    const todo = document.querySelector('.todo-content[contenteditable="true"]');
+    if (todo) {
+        todo.focus();
+        // Place cursor at the end
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(todo);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
+
+/**
+ * Changes the indent level of the selected todo
+ * @param {boolean} increase - Whether to increase or decrease the indent level
+ */
+function changeIndentLevel(increase) {
+    if (selectedIndex === -1) return;
+
+    const todo = todos[selectedIndex];
+    if (increase && todo.indentLevel < 5) {
+        todo.indentLevel++;
+    } else if (!increase && todo.indentLevel > 0) {
+        todo.indentLevel--;
+    }
+    saveTodos();
+    renderTodos();
+    if (isEditing) {
+        focusSelectedTodo();
+    }
+}
+
+/**
+ * Handles input events for editing todos
+ * @param {InputEvent} e
+ */
+function handleInput(e) {
+    if (e.target.matches('.todo-content[contenteditable="true"]') && selectedIndex >= 0) {
+        todos[selectedIndex].title = e.target.textContent;
+        debouncedSave();
+    }
+}
+
+/**
+ * Handles blur events for editing todos
+ * @param {FocusEvent} e
+ */
+function handleBlur(e) {
+    // Only handle blur for todo content
+    if (e.target.matches('.todo-content[contenteditable="true"]')) {
+        exitEditMode();
     }
 }
 
 /**
  * Handles todo selection
  * @param {number} index
+ * @param {Event} e
  */
-function selectTodo(index) {
+function selectTodo(index, e) {
+    // Prevent handling if clicking inside editable content
+    if (e && e.target.matches('.todo-content[contenteditable="true"]')) {
+        return;
+    }
+
+    const wasEditing = isEditing;
     if (isEditing) {
         exitEditMode();
     }
+    
+    // If clicking already selected todo, enter edit mode
+    if (selectedIndex === index && !wasEditing) {
+        isEditing = true;
+        renderTodos();
+        focusSelectedTodo();
+        return;
+    }
+    
     selectedIndex = index;
     renderTodos();
 }
@@ -143,7 +207,7 @@ function renderTodoItem(todo, index) {
              class="todo-item ${isSelected ? 'selected' : ''} ${editing ? 'editing' : ''}"
              data-index="${index}"
              data-indent="${todo.indentLevel || 0}"
-             onclick="selectTodo(${index})">
+             onclick="selectTodo(${index}, event)">
             <div class="todo-content"
                  contenteditable="${editing}"
                  ${editing ? '' : 'tabindex="-1"'}>
@@ -184,10 +248,18 @@ function toggleShortcutsDialog() {
  * @param {KeyboardEvent} e
  */
 function handleKeyboard(e) {
-    // Handle Tab for indentation
-    if (e.key === 'Tab') {
+    // Only handle tab when editing or a todo is selected
+    if (e.key === 'Tab' && (isEditing || selectedIndex >= 0)) {
         e.preventDefault(); // Prevent focus change
+        e.stopPropagation(); // Stop event bubbling
+        const wasEditing = isEditing;
         changeIndentLevel(!e.shiftKey);
+        if (wasEditing) {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+                focusSelectedTodo();
+            }, 0);
+        }
         return;
     }
 
@@ -228,28 +300,6 @@ function handleKeyboard(e) {
             renderTodos();
             focusSelectedTodo();
         }
-    }
-}
-
-/**
- * Handles input events for editing todos
- * @param {Event} e
- */
-function handleInput(e) {
-    if (e.target.matches('.todo-content') && isEditing) {
-        const index = parseInt(e.target.closest('.todo-item').dataset.index);
-        todos[index].title = e.target.textContent.trim();
-        saveTodos(todos);
-    }
-}
-
-/**
- * Handles when editing is complete
- * @param {FocusEvent} e
- */
-function handleBlur(e) {
-    if (e.target.matches('.todo-content') && isEditing) {
-        exitEditMode();
     }
 }
 
