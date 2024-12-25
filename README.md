@@ -1,6 +1,6 @@
 # Too-doo
 
-A simple todo app that works with both keyboard and mouse. Built with vanilla JavaScript.
+A simple todo app that works with keyboard. Built with vanilla JavaScript.
 
 [Try it here](https://abdushakoor12.github.io/Too-doo/)
 
